@@ -1,0 +1,34 @@
+---
+# tasks/client.yml: Deploy various client-side configurations for Sensu
+  
+  - include_vars: "{{ ansible_distribution }}.yml"
+
+  - name: Ensure the Sensu config directory is present
+    file:
+      dest: "{{ sensu_config_path }}/conf.d"
+      state: directory
+      recurse: true
+      owner: "{{ sensu_user_name }}"
+      group: "{{ sensu_group_name }}"
+
+  - name: Deploy Sensu client RabbitMQ configuration
+    template:
+      dest: "{{ sensu_config_path }}/conf.d/rabbitmq.json"
+      owner: "{{ sensu_user_name }}"
+      group: "{{ sensu_group_name }}"
+      src: rabbitmq.json.j2
+    notify: restart sensu-client service
+
+  - name: Deploy Sensu client service configuration
+    template:
+      dest: "{{ sensu_config_path }}/conf.d/client.json"
+      owner: "{{ sensu_user_name }}"
+      group: "{{ sensu_group_name }}"
+      src: "{{ sensu_client_config  }}"
+    notify: restart sensu-client service
+
+  - include: SmartOS/client.yml
+    when: ansible_distribution == "SmartOS"
+
+  - name: Ensure Sensu client service is running
+    service: name=sensu-client state=started enabled=yes

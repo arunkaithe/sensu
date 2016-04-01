@@ -1,0 +1,37 @@
+---
+# tasks/server.yml: Deploy Sensu Server/API
+
+  - include_vars: "{{ ansible_distribution }}.yml"
+
+  - name: Ensure the Sensu config directory is present
+    file:
+      dest: "{{ sensu_config_path }}/conf.d"
+      state: directory
+      recurse: true
+      owner: "{{ sensu_user_name }}"
+      group: "{{ sensu_group_name }}"
+
+  - name: Deploy Sensu server API configuration
+    template:
+      dest: "{{ sensu_config_path }}/conf.d/api.json"
+      owner: "{{ sensu_user_name }}"
+      group: "{{ sensu_group_name }}"
+      src: sensu-api.json.j2
+    notify: restart sensu-api service
+
+  - name: Deploy Sensu Redis configuration
+    template:
+      dest: "{{ sensu_config_path }}/conf.d/redis.json"
+      owner: "{{ sensu_user_name }}"
+      group: "{{ sensu_group_name }}"
+      src: sensu-redis.json.j2
+    notify: restart sensu-api service
+
+  - include: SmartOS/server.yml
+    when: ansible_distribution == "SmartOS"
+
+  - name: Ensure Sensu server service is running
+    service: name=sensu-server state=started enabled=yes
+
+  - name: Ensure Sensu API service is running
+    service: name=sensu-api state=started enabled=yes
